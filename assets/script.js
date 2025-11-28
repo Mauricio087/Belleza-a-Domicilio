@@ -5,27 +5,43 @@
 
 // ===== DOM CONTENT LOADED =====
 document.addEventListener('DOMContentLoaded', function() {
+    // Verificar preferencias del usuario
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.innerWidth <= 768;
+    
+    // Desactivar animaciones si el usuario lo prefiere o en móvil con bajo rendimiento
+    if (prefersReducedMotion || (isMobile && navigator.hardwareConcurrency <= 4)) {
+        document.documentElement.style.setProperty('--transition-fast', '0s');
+        document.documentElement.style.setProperty('--transition-medium', '0s');
+        document.documentElement.style.setProperty('--transition-slow', '0s');
+    }
+    
     initializeAnimations();
     initializeNavigation();
     initializeScrollEffects();
     initializeFormHandling();
     initializeBackToTop();
-    initializeNavbarScroll(); // Agregar esta línea
+    initializeNavbarScroll();
     initializeMobileMenu();
     initializeLazyLoading();
     initializeInstagramFeed();
+    
+    // Optimización final de rendimiento
+    optimizePerformance();
 });
 
 // ===== ANIMATIONS =====
 function initializeAnimations() {
-    // Initialize AOS (Animate On Scroll)
+    // Initialize AOS (Animate On Scroll) - Optimized for mobile
     if (typeof AOS !== 'undefined') {
+        const isMobile = window.innerWidth <= 768;
         AOS.init({
-            duration: 800,
-            easing: 'ease-in-out',
+            duration: isMobile ? 600 : 800, // Animaciones más rápidas en móvil
+            easing: 'ease-out', // Easing más suave para móvil
             once: true,
-            offset: 100,
-            delay: 100
+            offset: isMobile ? 50 : 100, // Activar animaciones antes en móvil
+            delay: isMobile ? 0 : 100, // Sin delay en móvil
+            disable: isMobile ? 'phone' : false // Desactivar en pantallas muy pequeñas si es necesario
         });
     }
 
@@ -94,16 +110,20 @@ function initializeNavigation() {
     const navbar = document.querySelector('.navbar');
     const navLinks = document.querySelectorAll('.nav-link');
     
-    // Navbar scroll effect
+    // Navbar scroll effect - Optimized for mobile
+    let scrollTimeout;
     window.addEventListener('scroll', () => {
-        if (window.scrollY > 100) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-    });
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }, 10); // Pequeño retraso para mejorar rendimiento
+    }, { passive: true });
     
-    // Smooth scrolling for navigation links
+    // Smooth scrolling for navigation links - Optimized for mobile
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -112,10 +132,22 @@ function initializeNavigation() {
             if (targetId.startsWith('#')) {
                 const targetSection = document.querySelector(targetId);
                 if (targetSection) {
-                    targetSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                    const isMobile = window.innerWidth <= 768;
+                    
+                    if (isMobile) {
+                        // Scroll más rápido en móvil
+                        const targetPosition = targetSection.offsetTop - 80;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'instant' // Scroll instantáneo en móvil para mejor rendimiento
+                        });
+                    } else {
+                        // Scroll suave en desktop
+                        targetSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
                 }
             }
         });
@@ -156,29 +188,48 @@ function initializeMobileMenu() {
 function initializeScrollEffects() {
     const scrollIndicator = document.querySelector('.scroll-indicator');
     
-    // Hide scroll indicator after scrolling
+    // Hide scroll indicator after scrolling - Optimized for mobile
+    let indicatorTimeout;
     window.addEventListener('scroll', () => {
-        if (scrollIndicator) {
-            if (window.scrollY > 100) {
-                scrollIndicator.style.opacity = '0';
-                scrollIndicator.style.visibility = 'hidden';
-            } else {
-                scrollIndicator.style.opacity = '1';
-                scrollIndicator.style.visibility = 'visible';
+        clearTimeout(indicatorTimeout);
+        indicatorTimeout = setTimeout(() => {
+            if (scrollIndicator) {
+                if (window.scrollY > 100) {
+                    scrollIndicator.style.opacity = '0';
+                    scrollIndicator.style.visibility = 'hidden';
+                } else {
+                    scrollIndicator.style.opacity = '1';
+                    scrollIndicator.style.visibility = 'visible';
+                }
             }
-        }
-    });
+        }, 16); // ~60fps para animaciones suaves
+    }, { passive: true });
     
-    // Parallax effect for hero section
+    // Parallax effect for hero section - Optimized for mobile
     const hero = document.querySelector('.hero');
     if (hero) {
-        window.addEventListener('scroll', () => {
+        let ticking = false;
+        
+        function updateParallax() {
             const scrolled = window.pageYOffset;
             const parallax = hero.querySelector('.hero-background');
             if (parallax) {
-                parallax.style.transform = `translateY(${scrolled * 0.5}px)`;
+                // Reducir el efecto en móvil para mejor rendimiento
+                const isMobile = window.innerWidth <= 768;
+                const parallaxSpeed = isMobile ? 0.2 : 0.5;
+                parallax.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
             }
-        });
+            ticking = false;
+        }
+        
+        function requestTick() {
+            if (!ticking) {
+                requestAnimationFrame(updateParallax);
+                ticking = true;
+            }
+        }
+        
+        window.addEventListener('scroll', requestTick, { passive: true });
     }
 }
 
@@ -215,10 +266,22 @@ function initializeFormHandling() {
             
             // If validation fails, don't submit
             if (!isValid) {
-                // Scroll to first error
+                // Scroll to first error - Optimized for mobile
                 const firstError = document.querySelector('.custom-select.error');
                 if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const isMobile = window.innerWidth <= 768;
+                    if (isMobile) {
+                        // Scroll instantáneo en móvil
+                        const errorPosition = firstError.offsetTop - 100;
+                        window.scrollTo({
+                            top: errorPosition,
+                            behavior: 'instant'
+                        });
+                        // Hacer focus en el elemento para mejor UX
+                        firstError.focus();
+                    } else {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
                 return;
             }
@@ -350,11 +413,25 @@ function initializeNavbarScroll() {
     let isScrollingDown = false;
     let scrollTimeout;
     let hideTimeout;
-    const scrollThreshold = 80; // Pixels de scroll antes de activar el comportamiento
+    const isMobile = window.innerWidth <= 768;
+    const scrollThreshold = isMobile ? 50 : 80; // Umbral más bajo en móvil
     const heroSection = document.querySelector('.hero');
     
     function updateNavbarVisibility() {
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // En móvil, simplificar el comportamiento
+        if (isMobile) {
+            if (currentScrollTop > lastScrollTop && currentScrollTop > scrollThreshold) {
+                // Scrolling down - hide navbar
+                navbar.classList.add('hidden');
+            } else {
+                // Scrolling up - show navbar
+                navbar.classList.remove('hidden');
+            }
+            lastScrollTop = currentScrollTop;
+            return;
+        }
         
         // Siempre mostrar navbar cuando estamos en la parte superior
         if (currentScrollTop < scrollThreshold) {
@@ -518,6 +595,39 @@ document.addEventListener('click', (e) => {
 });
 
 // ===== PERFORMANCE OPTIMIZATIONS =====
+// ===== PERFORMANCE OPTIMIZATION =====
+function optimizePerformance() {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Desactivar animaciones complejas en móvil
+        const animatedElements = document.querySelectorAll('.hero-img, .hero-image-decoration, .floating');
+        animatedElements.forEach(el => {
+            el.style.animation = 'none';
+        });
+        
+        // Optimizar imágenes
+        const images = document.querySelectorAll('img');
+        images.forEach(img => {
+            img.loading = 'lazy';
+            img.decoding = 'async';
+        });
+        
+        // Prevenir repaints costosos
+        const containers = document.querySelectorAll('.hero-content, .service-card, .about-content');
+        containers.forEach(container => {
+            container.style.willChange = 'transform';
+        });
+        
+        // Limpiar will-change después de un tiempo
+        setTimeout(() => {
+            containers.forEach(container => {
+                container.style.willChange = 'auto';
+            });
+        }, 2000);
+    }
+}
+
 // Debounce function for scroll events
 function debounce(func, wait) {
     let timeout;

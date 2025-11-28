@@ -412,75 +412,44 @@ function initializeNavbarScroll() {
     if (!navbar) return;
     
     let lastScrollTop = 0;
-    let isScrollingDown = false;
-    let scrollTimeout;
-    let hideTimeout;
-    const isMobile = window.innerWidth <= 768;
-    const scrollThreshold = isMobile ? 50 : 80; // Umbral más bajo en móvil
     const heroSection = document.querySelector('.hero');
+    
+    // Calcular la altura del hero para saber cuándo mostrar el navbar
+    let heroHeight = heroSection ? heroSection.offsetHeight : 500;
+    
+    // Actualizar altura si cambia el tamaño de ventana
+    window.addEventListener('resize', () => {
+        heroHeight = heroSection ? heroSection.offsetHeight : 500;
+    });
     
     function updateNavbarVisibility() {
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
-        // En móvil, simplificar el comportamiento
-        if (isMobile) {
-            if (currentScrollTop > lastScrollTop && currentScrollTop > scrollThreshold) {
-                // Scrolling down - hide navbar
-                navbar.classList.add('hidden');
-            } else {
-                // Scrolling up - show navbar
-                navbar.classList.remove('hidden');
-            }
-            lastScrollTop = currentScrollTop;
-            return;
-        }
+        // LÓGICA SIMPLE SOLICITADA:
+        // 1. Si estamos cerca del top (en el Hero), mostrar navbar.
+        // 2. Si bajamos más allá del Hero, ocultar navbar.
+        // 3. Si hacemos scroll up pero seguimos lejos del top, MANTENER OCULTO.
         
-        // Siempre mostrar navbar cuando estamos en la parte superior
-        if (currentScrollTop < scrollThreshold) {
-            clearTimeout(hideTimeout);
+        // Definir punto de corte: un poco antes de terminar el hero para que la transición sea suave
+        const showThreshold = heroHeight * 0.8; 
+        
+        if (currentScrollTop < showThreshold) {
+            // Estamos en la zona superior (Hero) -> MOSTRAR
             navbar.classList.remove('hidden');
             navbar.classList.add('showing');
-            lastScrollTop = currentScrollTop;
-            return;
-        }
-        
-        // Si estamos en la sección hero, mostrar navbar con prioridad
-        if (heroSection) {
-            const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-            if (currentScrollTop < heroBottom - 30) {
-                clearTimeout(hideTimeout);
-                navbar.classList.remove('hidden');
-                navbar.classList.add('showing');
-                lastScrollTop = currentScrollTop;
-                return;
-            }
-        }
-        
-        // Detectar dirección del scroll con precisión
-        if (currentScrollTop > lastScrollTop + 8) {
-            isScrollingDown = true;
-        } else if (currentScrollTop < lastScrollTop - 8) {
-            isScrollingDown = false;
-        }
-        
-        // Efecto profesional: delay inteligente al ocultar
-        if (isScrollingDown && currentScrollTop > scrollThreshold * 2) {
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => {
+        } else {
+            // Estamos abajo -> OCULTAR (sin importar si sube o baja, hasta llegar al hero)
+            // Solo ocultamos si ya pasamos un umbral mínimo para evitar parpadeos al inicio
+            if (currentScrollTop > 100) {
                 navbar.classList.add('hidden');
                 navbar.classList.remove('showing');
-            }, 150); // Pequeño delay para mayor fluidez
-        } else if (!isScrollingDown) {
-            // Mostrar inmediatamente al subir
-            clearTimeout(hideTimeout);
-            navbar.classList.remove('hidden');
-            navbar.classList.add('showing');
+            }
         }
         
         lastScrollTop = currentScrollTop;
     }
     
-    // Optimizar con requestAnimationFrame para mejor rendimiento
+    // Optimizar con requestAnimationFrame
     let ticking = false;
     function requestTick() {
         if (!ticking) {
@@ -492,12 +461,6 @@ function initializeNavbarScroll() {
     window.addEventListener('scroll', () => {
         ticking = false;
         requestTick();
-        
-        // Clear timeout para asegurar estado final
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            updateNavbarVisibility();
-        }, 100);
     });
     
     // Estado inicial

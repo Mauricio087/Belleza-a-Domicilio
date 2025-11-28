@@ -208,28 +208,30 @@ function initializeScrollEffects() {
     // Parallax effect for hero section - Optimized for mobile
     const hero = document.querySelector('.hero');
     if (hero) {
-        let ticking = false;
+        // Desactivar parallax en móviles para evitar problemas de rendimiento en el scroll
+        const isMobile = window.innerWidth <= 768;
         
-        function updateParallax() {
-            const scrolled = window.pageYOffset;
-            const parallax = hero.querySelector('.hero-background');
-            if (parallax) {
-                // Reducir el efecto en móvil para mejor rendimiento
-                const isMobile = window.innerWidth <= 768;
-                const parallaxSpeed = isMobile ? 0.2 : 0.5;
-                parallax.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
+        if (!isMobile) {
+            let ticking = false;
+            
+            function updateParallax() {
+                const scrolled = window.pageYOffset;
+                const parallax = hero.querySelector('.hero-background');
+                if (parallax) {
+                    parallax.style.transform = `translateY(${scrolled * 0.5}px)`;
+                }
+                ticking = false;
             }
-            ticking = false;
-        }
-        
-        function requestTick() {
-            if (!ticking) {
-                requestAnimationFrame(updateParallax);
-                ticking = true;
+            
+            function requestTick() {
+                if (!ticking) {
+                    requestAnimationFrame(updateParallax);
+                    ticking = true;
+                }
             }
+            
+            window.addEventListener('scroll', requestTick, { passive: true });
         }
-        
-        window.addEventListener('scroll', requestTick, { passive: true });
     }
 }
 

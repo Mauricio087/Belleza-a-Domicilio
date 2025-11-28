@@ -2797,6 +2797,36 @@ img {
         padding-top: 80px; /* Ajustar para nuevo tamaño del navbar (78px logo + 2px extra) */
     }
 
+    /* Optimización de rendimiento del Hero en móvil */
+    .hero-pattern {
+        /* Simplificar el patrón de fondo complejo a un gradiente simple */
+        background: linear-gradient(135deg, rgba(244, 208, 63, 0.15) 0%, rgba(184, 134, 11, 0.1) 100%) !important;
+        /* Evitar repaints complejos */
+        will-change: auto;
+    }
+
+    .hero-background {
+        /* Asegurar que el fondo base sea estático si se eliminó el parallax por JS */
+        transform: none !important;
+        will-change: auto;
+    }
+    
+    /* Desactivar backdrop-filter costoso en móvil */
+    .navbar {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(18, 18, 18, 0.95) !important; /* Fondo sólido casi opaco */
+    }
+    
+    /* Desactivar animaciones de entrada en Hero para carga inmediata */
+    .hero-text, 
+    .hero-image,
+    .hero-content > * {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
     /* ===== FOOTER CENTERING FOR MOBILE ===== */
     .footer-content {
         grid-template-columns: 1fr; /* Una sola columna */
